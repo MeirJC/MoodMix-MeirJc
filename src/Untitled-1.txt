@@ -1,0 +1,113 @@
+// refeefrnce for the project
+
+import React, { useEffect, useRef, useContext } from "react";
+
+function AudioLoopPlayer({ type }) {
+  // Data for the audio files
+  const audioFiles = {
+    drums: [
+      { src: "loop1.mp3" },
+      { src: "loop2.mp3" },
+      { src: "loop3.mp3" },
+      { src: "loop4.mp3" },
+    ],
+    bass: [
+      { src: "loop1.mp3" },
+      { src: "loop2.mp3" },
+      { src: "loop3.mp3" },
+      { src: "loop4.mp3" },
+    ],
+    piano: [
+      { src: "loop1.mp3" },
+      { src: "loop2.mp3" },
+      { src: "loop3.mp3" },
+      { src: "loop4.mp3" },
+    ],
+    guitar: [
+      { src: "loop1.mp3" },
+      { src: "loop2.mp3" },
+      { src: "loop3.mp3" },
+      { src: "loop4.mp3" },
+    ],
+  };
+
+  // Create the audio context and buffer array
+  const audioContext = new AudioContext();
+  const audioBuffers = useRef([]);
+
+  // Load the audio files into the buffer array
+  useEffect(() => {
+    const requests = audioFiles[type].map(async (node) => {
+      const response = await fetch(node.src);
+      const arrayBuffer = await response.arrayBuffer();
+      return audioContext.decodeAudioData(arrayBuffer);
+    });
+
+    Promise.all(requests).then((buffers) => {
+      audioBuffers.current = buffers;
+    });
+  }, [type]);
+
+  // Create the audio players
+  const audioPlayers = audioBuffers.current.map((buffer, index) => {
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.connect(audioContext.destination);
+    return source;
+  });
+
+  // Get the isPlaying and isLoading states and setIsPlaying function from the context
+  const { isPlaying, isLoading, setIsPlaying } = useContext(AudioContext);
+
+  // Function to handle button clicks
+  const handleButtonClick = (index) => {
+    if (audioPlayers[index]._isMuted) {
+      // Unmute the audio player and set isPlaying to true
+      audioPlayers[index]._isMuted = false;
+      setIsPlaying(true);
+    } else {
+      // Mute the audio player and set isPlaying to false if all audio players are muted
+      audioPlayers[index]._isMuted = true;
+      setIsPlaying(audioPlayers.some((player) => !player._isMuted));
+    }
+  };
+
+  // Render the audio players if they have been loaded, otherwise render a loading message
+  if (isLoading) {
+    return <div>Loading...</div>;
+  } else {
+    return (
+      <div>
+        {audioPlayers.map((player, index) => (
+          <button onClick={() => handleButtonClick(index)}>
+            {player._isMuted ? "Muted" : "Playing"}
+          </button>
+        ))}
+      </div>
+    );
+  }
+}
+
+// import React, { useState } from "react";
+// import { AudioLoopPlayer } from "./AudioLoopPlayer";
+// export const AudioContext = React.createContext();
+function App() {
+  function App() {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    return (
+      <AudioContext.Provider
+        value={{ isPlaying, setIsPlaying, isLoading, setIsLoading }}
+      >
+        <AudioLoopPlayer type="drums" />
+        <AudioLoopPlayer type="bass" />
+        <AudioLoopPlayer type="piano" />
+        <AudioLoopPlayer type="guitar" />
+      </AudioContext.Provider>
+    );
+  }
+}
+
+export default App;
